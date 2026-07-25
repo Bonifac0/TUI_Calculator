@@ -1,0 +1,21 @@
+#[derive(Debug, Clone, PartialEq)]
+pub enum Token {
+    Number(f64),
+    Identifier(String),
+    Op(char),
+    LParen,
+    RParen,
+    LBracket,
+    RBracket,
+    LBrace,
+    RBrace,
+    Comma,
+    Semicolon,
+    Factorial,
+    Power,
+    Backslash,
+    Ampersand,
+    DoubleBackslash,
+    LaTeXCommand(String),
+    Eof,
+}

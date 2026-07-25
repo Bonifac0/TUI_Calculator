@@ -1,0 +1,228 @@
+pub mod history;
+pub mod variables;
+
+pub use history::History;
+pub use variables::VariableStore;
+
+use crate::config::{AngleUnit, Settings};
+use crate::eval::{Evaluator, Value};
+use crate::parser::parse_expression;
+
+#[derive(Debug, Clone)]
+pub struct App {
+    pub input: String,
+    pub cursor_pos: usize,
+    pub scroll_x: usize,
+    pub scroll_y: usize,
+    pub result: String,
+    pub last_value: Option<Value>,
+    pub history: History,
+    pub variables: VariableStore,
+    pub angle_unit: AngleUnit,
+    pub precision: usize,
+    pub error_message: Option<String>,
+    pub debug_log: String,
+    pub show_help: bool,
+    pub exit: bool,
+}
+
+impl Default for App {
+    fn default() -> Self {
+        let settings = Settings::load();
+        Self {
+            input: String::new(),
+            cursor_pos: 0,
+            scroll_x: 0,
+            scroll_y: 0,
+            result: String::new(),
+            last_value: None,
+            history: History::new(),
+            variables: VariableStore::new(),
+            angle_unit: settings.angle_unit,
+            precision: settings.precision,
+            error_message: None,
+            debug_log: "System initialized. Ready.".to_string(),
+            show_help: false,
+            exit: false,
+        }
+    }
+}
+
+impl App {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn insert_char(&mut self, c: char) {
+        self.error_message = None;
+        if self.cursor_pos >= self.input.len() {
+            self.input.push(c);
+        } else {
+            self.input.insert(self.cursor_pos, c);
+        }
+        self.cursor_pos += 1;
+    }
+
+    pub fn insert_str(&mut self, s: &str) {
+        self.error_message = None;
+        if self.cursor_pos >= self.input.len() {
+            self.input.push_str(s);
+        } else {
+            self.input.insert_str(self.cursor_pos, s);
+        }
+        self.cursor_pos += s.len();
+    }
+
+    pub fn insert_fraction(&mut self) {
+        self.error_message = None;
+        let pos = self.cursor_pos;
+        let bytes = self.input.as_bytes();
+
+        // Scan backwards for preceding number
+        let mut start = pos;
+        while start > 0 {
+            let ch = bytes[start - 1] as char;
+            if ch.is_ascii_digit() || ch == '.' {
+                start -= 1;
+            } else {
+                break;
+            }
+        }
+
+        if start < pos {
+            let num = self.input[start..pos].to_string();
+            self.input.drain(start..pos);
+            let frac_str = format!("\\frac{{{}}}{{}}", num);
+            self.input.insert_str(start, &frac_str);
+            // Place cursor inside denominator
+            self.cursor_pos = start + frac_str.len() - 1;
+        } else {
+            let frac_str = "\\frac{}{}";
+            if self.cursor_pos >= self.input.len() {
+                self.input.push_str(frac_str);
+            } else {
+                self.input.insert_str(self.cursor_pos, frac_str);
+            }
+            // Place cursor inside numerator
+            self.cursor_pos = pos + 6; // \frac{ -> 6 chars
+        }
+    }
+
+    pub fn insert_sqrt(&mut self) {
+        self.error_message = None;
+        let sqrt_str = "√(";
+        if self.cursor_pos >= self.input.len() {
+            self.input.push_str(sqrt_str);
+        } else {
+            self.input.insert_str(self.cursor_pos, sqrt_str);
+        }
+        self.cursor_pos += sqrt_str.len();
+    }
+
+    pub fn backspace(&mut self) {
+        self.error_message = None;
+        if self.cursor_pos > 0 && !self.input.is_empty() {
+            self.cursor_pos -= 1;
+            self.input.remove(self.cursor_pos);
+        }
+    }
+
+    pub fn move_cursor_left(&mut self) {
+        if self.cursor_pos > 0 {
+            self.cursor_pos -= 1;
+        }
+    }
+
+    pub fn move_cursor_right(&mut self) {
+        if self.cursor_pos < self.input.len() {
+            self.cursor_pos += 1;
+        }
+    }
+
+    pub fn move_cursor_home(&mut self) {
+        self.cursor_pos = 0;
+    }
+
+    pub fn move_cursor_end(&mut self) {
+        self.cursor_pos = self.input.len();
+    }
+
+    pub fn scroll_up(&mut self) {
+        if self.scroll_y > 0 {
+            self.scroll_y -= 1;
+        }
+    }
+
+    pub fn scroll_down(&mut self) {
+        self.scroll_y += 1;
+    }
+
+    pub fn clear_input(&mut self) {
+        self.input.clear();
+        self.cursor_pos = 0;
+        self.scroll_x = 0;
+        self.scroll_y = 0;
+        self.error_message = None;
+    }
+
+    pub fn all_clear(&mut self) {
+        self.clear_input();
+        self.result.clear();
+        self.last_value = None;
+        self.history.clear();
+        self.variables = VariableStore::new();
+        self.debug_log = "All memory cleared.".to_string();
+    }
+
+    pub fn toggle_angle_unit(&mut self) {
+        self.angle_unit = match self.angle_unit {
+            AngleUnit::Deg => AngleUnit::Rad,
+            AngleUnit::Rad => AngleUnit::Deg,
+        };
+        self.debug_log = format!("Angle unit set to {:?}", self.angle_unit);
+    }
+
+    pub fn store_variable(&mut self, var_name: char) {
+        let name = var_name.to_string().to_uppercase();
+        if let Some(ref val) = self.last_value {
+            self.variables.set(name.clone(), val.clone());
+            self.debug_log = format!("Stored {} in variable {}", val, name);
+        } else {
+            let ans = self.variables.get_ans();
+            self.variables.set(name.clone(), ans.clone());
+            self.debug_log = format!("Stored ans ({}) in variable {}", ans, name);
+        }
+    }
+
+    pub fn evaluate(&mut self) {
+        self.error_message = None;
+        let expr_str = self.input.trim();
+        if expr_str.is_empty() {
+            return;
+        }
+
+        match parse_expression(expr_str) {
+            Ok(ast) => {
+                let evaluator = Evaluator::new(self.variables.map(), self.angle_unit);
+                match evaluator.eval(&ast) {
+                    Ok(val) => {
+                        let formatted = val.to_formatted_string(self.precision);
+                        self.result = formatted.clone();
+                        self.last_value = Some(val.clone());
+                        self.variables.set_ans(val);
+                        self.history.push(expr_str.to_string(), formatted);
+                        self.debug_log = format!("Evaluated: {}", expr_str);
+                    }
+                    Err(err) => {
+                        self.error_message = Some(err.clone());
+                        self.debug_log = format!("Eval Error: {}", err);
+                    }
+                }
+            }
+            Err(err) => {
+                self.error_message = Some(err.clone());
+                self.debug_log = format!("Parse Error: {}", err);
+            }
+        }
+    }
+}
