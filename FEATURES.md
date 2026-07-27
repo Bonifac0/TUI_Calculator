@@ -64,7 +64,7 @@ An advanced, CASIO-inspired Scientific Terminal UI (TUI) Calculator built in **R
 
 ## 4. Responsive Layout System
 
-The interface dynamically adapts to terminal window resizing across 3 distinct responsive break-points. All keyboard shortcuts remain fully functional in every layout mode, regardless of whether corresponding visual buttons are rendered.
+The interface dynamically adapts to terminal window resizing across 4 distinct responsive break-points. All keyboard shortcuts remain fully functional in every layout mode, regardless of whether corresponding visual buttons are rendered.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────────┐
@@ -80,11 +80,20 @@ The interface dynamically adapts to terminal window resizing across 3 distinct r
 
 ### 4.1 Layout Modes
 
+Layout selection is automatic and follows this precedence:
+
+- **Tiny Mode** when the terminal height is too small for the keypad stack.
+- **Big Mode** when there is enough width and height for the full three-column layout.
+- **Medium Mode** when there is enough space for the split keypad layout but not the full three-column view.
+- **Small Mode** as the compact fallback with the keypad still visible.
+
+The modes are:
+
 1. **Big Mode (Full Screen)**:
    - **Top Bar**: Application title, current angle mode (`DEG`/`RAD`), layout mode indicator, and debug log/status region.
    - **Top Left**: Main expression input canvas with 2D math rendering and 4-way viewport scrolling.
    - **Top Right**: Result display panel.
-   - **Bottom Left**: Number pad (`0`-`9`), decimal `.`, basic operators (`+`, `-`, `*`, `/`, `=`)..
+   - **Bottom Left**: Number pad (`0`-`9`), decimal `.`, basic operators (`+`, `-`, `*`, `/`, `=`).
    - **Bottom Center**: Advanced scientific operators, function buttons, and LaTeX shortcuts.
    - **Bottom Right**: Live Variables Table displaying values for `ans` and `A`–`F`.
 
@@ -93,8 +102,12 @@ The interface dynamically adapts to terminal window resizing across 3 distinct r
    - Retains Expression Canvas, Result Panel, Number Pad, and compact Advanced Functions strip.
 
 3. **Small Mode (Minimal / Compact)**:
-   - Displays Expression, Result, Number Pad, and basic arithmetic controls.
+   - Displays Expression, Result, and the basic number pad.
    - Advanced operations and LaTeX inputs remain fully functional via keyboard shortcuts.
+
+4. **Tiny Mode (Height-Constrained)**:
+   - Displays only the Expression canvas and the Result box.
+   - Hides all keypad panels to preserve vertical space when the window is too short.
 
 ---
 
@@ -102,7 +115,7 @@ The interface dynamically adapts to terminal window resizing across 3 distinct r
 
 - **Top Bar Component**:
   - Application title & version indicator.
-  - Active Mode Badges: Angle mode (`DEG` vs `RAD`), layout indicator (`BIG`/`MED`/`SML`).
+  - Active Mode Badges: Angle mode (`DEG` vs `RAD`), layout indicator (`BIG`/`MED`/`SML`/`TINY`).
   - Debug / Log Message Strip for error traces, warnings, or confirmation logs.
 - **Help Modal (`?` or `F1` key)**:
   - Interactive overlay window listing full keyboard shortcuts, LaTeX syntax reference, variable guide, and developer credits.

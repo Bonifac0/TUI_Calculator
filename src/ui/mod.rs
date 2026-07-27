@@ -19,6 +19,7 @@ pub fn draw(frame: &mut Frame, app: &mut App) -> Vec<Button> {
     let mut buttons = Vec::new();
 
     // Determine layout mode based on terminal width and height
+    let is_tiny = area.height < 26;
     let (is_big, is_medium) = if area.width >= 100 && area.height >= 24 {
         (true, false)
     } else if area.width >= 70 && area.height >= 18 {
@@ -39,7 +40,17 @@ pub fn draw(frame: &mut Frame, app: &mut App) -> Vec<Button> {
     top_bar::render(frame, chunks[0], app);
 
     // Render Main Body
-    if is_big {
+    if is_tiny {
+        // Tiny Mode: Expression and result only, no keypad
+        let body_split = Layout::vertical([
+            Constraint::Min(4),
+            Constraint::Length(3),
+        ])
+        .split(chunks[1]);
+
+        canvas::render(frame, body_split[0], app);
+        render_result_box(frame, body_split[1], app);
+    } else if is_big {
         // Big Mode: Expression Canvas fills all remaining vertical space, Keypads get fixed 15-line height
         let body_split = Layout::vertical([
             Constraint::Min(6),      // Canvas & Result: Fills all remaining space!
