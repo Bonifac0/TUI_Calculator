@@ -1,0 +1,155 @@
+.TH TUI_CALCULATOR 1 "2026-07" "v0.1.0" "TUI Calculator Manual"
+
+.SH NAME
+tui_calculator \- an advanced CASIO-inspired scientific TUI calculator
+
+.SH SYNOPSIS
+.B tui_calculator
+[\fIOPTIONS\fR] [\fIEXPRESSION\fR]
+
+.SH DESCRIPTION
+.B tui_calculator
+is a terminal-based scientific calculator built in Rust using Ratatui and
+Crossterm. It features 2D math layout rendering (stacked fractions, square
+roots, matrix blocks), LaTeX expression syntax, 4-way viewport scrolling,
+a responsive layout engine, matrix/vector algebra via nalgebra, and a
+non-interactive CLI mode suitable for scripting.
+
+.SH OPTIONS
+.TP
+.BR \-s ", " \-\-small
+Force the Small layout mode regardless of terminal size.
+.TP
+.BR \-m ", " \-\-medium
+Force the Medium layout mode regardless of terminal size.
+.TP
+.BR \-b ", " \-\-big
+Force the Big (full) layout mode regardless of terminal size.
+.TP
+.BR \-h ", " \-\-help
+Print help information and exit.
+.TP
+.BR \-v ", " \-\-version
+Print version information and exit.
+
+.SH NON-INTERACTIVE MODE
+When an
+.I EXPRESSION
+argument is provided, the calculator evaluates it and prints the result to
+.B stdout
+without launching the TUI, then exits with code
+.B 0
+on success or
+.B 1
+on error.
+
+.PP
+Examples:
+.RS
+.nf
+tui_calculator "sin(30deg) + pi"
+tui_calculator "det([[1,2],[3,4]])"
+tui_calculator "\\\\frac{1}{2} + \\\\sqrt{9}"
+.fi
+.RE
+
+.SH KEY BINDINGS
+.TP
+.B Enter / =
+Evaluate the current expression.
+.TP
+.B Backspace
+Delete the character or token before the cursor.
+.TP
+.B Arrow Keys
+Move cursor left/right; navigate up/down inside fractions or multiline expressions.
+.TP
+.B Home / End
+Jump to the start or end of the expression.
+.TP
+.B Ctrl+C / q
+Quit the application.
+.TP
+.B ? / F1
+Open the interactive help modal (keyboard shortcuts and LaTeX reference).
+.TP
+.B Tab
+Toggle between DEG and RAD angle mode.
+.TP
+.B Shift+A \[en] Shift+F
+Store the current result (ans) into variable A through F.
+.TP
+.B A \[en] F
+Insert the value of variable A through F into the expression.
+
+.SH FILES
+.TP
+.I ~/.config/tui_calculator/config.toml
+User configuration file in TOML format. Supported keys:
+.RS
+.TP
+.B angle_unit
+\[dq]deg\[dq] or \[dq]rad\[dq] (default: \[dq]deg\[dq])
+.TP
+.B precision
+Number of decimal places to display (default: 6)
+.TP
+.B default_layout
+\[dq]auto\[dq], \[dq]big\[dq], \[dq]medium\[dq], or \[dq]small\[dq] (default: \[dq]auto\[dq])
+.TP
+.B theme
+\[dq]dark\[dq], \[dq]light\[dq], \[dq]dracula\[dq], or \[dq]monokai\[dq] (default: \[dq]dark\[dq])
+.TP
+.B latex_rendering
+true or false (default: true)
+.RE
+
+.SH SUPPORTED FUNCTIONS
+Trigonometric:
+.BR sin ", " cos ", " tan ", " asin ", " acos ", " atan
+.PP
+Hyperbolic:
+.BR sinh ", " cosh ", " tanh
+.PP
+Logarithmic:
+.BR ln ", " log10 ", " log2
+.PP
+Other:
+.BR sqrt ", " abs ", " root(n,x) ", " nCr ", " nPr
+.PP
+Matrix / Vector:
+.BR det ", " inv ", " eigenval ", " eigenvec ", " dot ", " cross ", " norm
+.PP
+Constants:
+.BR pi ", " e
+
+.SH LATEX SYNTAX
+The following LaTeX commands are accepted in both TUI and non-interactive mode:
+.RS
+.nf
+\\\\frac{num}{den}
+\\\\sqrt{x}
+\\\\sin, \\\\cos, \\\\tan, \\\\arcsin, \\\\arccos, \\\\arctan
+\\\\det, \\\\vec{v}
+\\\\begin{matrix} 1 & 2 \\\\\\\\ 3 & 4 \\\\end{matrix}
+\\\\begin{bmatrix} ... \\\\end{bmatrix}
+.fi
+.RE
+
+.SH EXIT STATUS
+.TP
+.B 0
+Success (non-interactive mode only).
+.TP
+.B 1
+Parse or evaluation error (non-interactive mode only).
+
+.SH SEE ALSO
+.BR bc (1),
+.BR python3 (1)
+
+.SH AUTHOR
+Bonifac0 <https://github.com/Bonifac0>
+
+.SH LICENSE
+MIT License. See the LICENSE file distributed with the source code.

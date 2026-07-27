@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=TUI Calculator
+GenericName=Scientific Calculator
+Comment=Advanced CASIO-inspired scientific terminal calculator with LaTeX and matrix support
+Exec=tui_calculator
+Icon=utilities-calculator
+Terminal=true
+Categories=Utility;Calculator;Science;
+Keywords=calculator;math;tui;terminal;matrix;latex;scientific;rust;
+StartupNotify=false
