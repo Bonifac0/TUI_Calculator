@@ -8,6 +8,24 @@ use crate::config::{AngleUnit, Settings};
 use crate::eval::{Evaluator, Value};
 use crate::parser::parse_expression;
 
+const BACKSPACE_TOKENS: &[&str] = &[
+    "eigenval(",
+    "asin(",
+    "acos(",
+    "atan(",
+    "sin(",
+    "cos(",
+    "tan(",
+    "det(",
+    "inv(",
+    "norm(",
+    "log(",
+    "ln(",
+    "ans",
+    "pi",
+    "√(",
+];
+
 #[derive(Debug, Clone)]
 pub struct App {
     pub input: String,
@@ -121,10 +139,33 @@ impl App {
 
     pub fn backspace(&mut self) {
         self.error_message = None;
-        if self.cursor_pos > 0 && !self.input.is_empty() {
-            self.cursor_pos -= 1;
-            self.input.remove(self.cursor_pos);
+        if self.cursor_pos == 0 || self.input.is_empty() {
+            return;
         }
+
+        if let Some(token_len) = self.token_len_before_cursor() {
+            let start = self.cursor_pos - token_len;
+            self.input.drain(start..self.cursor_pos);
+            self.cursor_pos = start;
+            return;
+        }
+
+        if let Some((char_start, _)) = self.input[..self.cursor_pos].char_indices().last() {
+            self.input.remove(char_start);
+            self.cursor_pos = char_start;
+        }
+    }
+
+    fn token_len_before_cursor(&self) -> Option<usize> {
+        if self.cursor_pos == 0 || self.cursor_pos > self.input.len() {
+            return None;
+        }
+
+        let before_cursor = &self.input[..self.cursor_pos];
+        BACKSPACE_TOKENS
+            .iter()
+            .filter_map(|token| before_cursor.ends_with(token).then_some(token.len()))
+            .max()
     }
 
     pub fn move_cursor_left(&mut self) {

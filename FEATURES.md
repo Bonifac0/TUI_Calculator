@@ -19,6 +19,9 @@ An advanced, CASIO-inspired Scientific Terminal UI (TUI) Calculator built in **R
 - **Precision Cursor Navigation**:
   - Cursor movement via arrow keys (Left, Right, Up, Down).
   - Direct Mouse Position Click: Clicking any character/symbol in the rendering canvas moves the editing cursor directly to that character index.
+- **Token-Aware Backspace for Inserted Functions**:
+  - Function snippets inserted as predefined tokens (e.g. `sin(`, `cos(`, `asin(`, `det(`, `eigenval(`, `norm(`, `log(`, `ln(`, `ans`, `pi`, `√(`) are removed in one Backspace press when the cursor is directly after the token.
+  - Regular text editing still supports single-character Backspace behavior.
 
 ### 1.2 Matrix & Vector Inline & LaTeX Syntax
 - **Inline Array Syntax**: `[[1, 2], [3, 4]]` or `[1, 2; 3, 4]`.
