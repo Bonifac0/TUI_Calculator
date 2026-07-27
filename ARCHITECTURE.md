@@ -5,7 +5,7 @@ This document outlines the software architecture and module organization for the
 
 ---
 
-## 📁 Directory & Module Structure
+## Directory & Module Structure
 
 In Rust's module system, a directory containing a `mod.rs` file acts as the public entry point for that module folder. `mod.rs` declares submodules and re-exports public structs/enums, giving the rest of the application a clean, unified API.
 
@@ -13,7 +13,8 @@ In Rust's module system, a directory containing a `mod.rs` file acts as the publ
 src/
 ├── main.rs                 # CLI entry point, mode selection, terminal lifecycle
 ├── app/                    # Central application state & lifecycle
-│   ├── mod.rs              # App struct, state loop, action execution
+│   ├── mod.rs              # App struct, action handlers, eval bridge
+│   ├── editor.rs           # Structured expression editor model + 2D render model
 │   ├── history.rs          # Calculation history buffer
 │   └── variables.rs        # Memory environment (ans, A-F default 0)
 ├── config/                 # Configuration & CLI Argument Management
@@ -30,8 +31,8 @@ src/
 │   ├── value.rs            # Dynamic Value enum: Scalar(f64), Matrix, Vector
 │   └── linear_algebra.rs   # Matrix & Vector ops powered by nalgebra crate
 ├── ui/                     # Terminal User Interface & Layout Rendering
-│   ├── mod.rs              # Responsive layout breakpoint engine (Big/Med/Small)
-│   ├── canvas.rs           # 2D Math Canvas & 4-way viewport panning (▲ ▼ ◀ ▶)
+│   ├── mod.rs              # Responsive layout breakpoint engine (Tiny/Big/Med/Small)
+│   ├── canvas.rs           # 2D expression canvas renderer + viewport panning
 │   ├── keypad.rs           # Interactive button grid renderer & mouse hit-testing
 │   ├── top_bar.rs          # App header, status indicators (DEG/RAD), and debug logs
 │   ├── variables_view.rs    # Live variables table panel (A-F & ans)
@@ -43,7 +44,7 @@ src/
 
 ---
 
-## 🔄 System Architecture & Data Flow
+## System Architecture & Data Flow
 
 ```mermaid
 graph TD
@@ -55,7 +56,7 @@ graph TD
     Parser --> Evaluator[Math Evaluator: nalgebra Engine]
     Evaluator --> AppState
     
-    AppState --> LayoutEngine[Responsive Layout Engine: Big / Med / Small]
+    AppState --> LayoutEngine[Responsive Layout Engine: Tiny / Big / Med / Small]
     LayoutEngine --> UIRenderer[Ratatui UI Rendering]
     UIRenderer --> Canvas[2D Math Canvas & Keypad Grid]
     Canvas --> TerminalFrame([Terminal Screen Frame])
@@ -63,10 +64,15 @@ graph TD
 
 ---
 
-## 🧩 Detailed Module Specifications
+## Detailed Module Specifications
 
 ### 1. `src/app/` — Application State Management
-- **`App` Struct**: Holds active expression buffer, cursor position, evaluation result, error messages, active angle mode (`Deg`/`Rad`), history buffer, variable environment, and configuration settings.
+- **`App` Struct**: Holds editor state, viewport scroll state, evaluation result, error messages, active angle mode (`Deg`/`Rad`), history buffer, variable environment, and configuration settings.
+- **`editor.rs`**:
+  - Owns the structured input model (character nodes + fraction nodes).
+  - Tracks cursor as a path inside nested structures (including numerator/denominator).
+  - Produces a 2D render representation consumed by the canvas.
+  - Serializes the structured model back to parseable expression text for evaluation.
 - **`variables.rs`**: Manages variable registers `ans`, `A`, `B`, `C`, `D`, `E`, `F`. Default value for all variables is `0`. Supports values of type `Scalar`, `Matrix`, or `Vector`.
 - **`history.rs`**: Retains past `(expression, result)` calculation tuples.
 
@@ -94,9 +100,10 @@ graph TD
 - **Angle Unit Converter**: Respects configuration setting (`DEG` vs `RAD`), automatically converting trigonometric function inputs/outputs when operating in degrees mode.
 
 ### 5. `src/ui/` — Terminal UI & 2D Math Canvas
-- **Responsive Layout Engine**: Reads terminal `Rect` dimensions and dynamically chooses between `BigMode`, `MediumMode`, and `SmallMode`.
+- **Responsive Layout Engine**: Reads terminal `Rect` dimensions and dynamically chooses between `TinyMode`, `BigMode`, `MediumMode`, and `SmallMode`.
 - **2D Math Canvas (`canvas.rs`)**:
-  - Renders 2D stacked fractions, square root containers, and matrix grids.
+  - Renders multiline 2D expressions from the editor render model (including stacked fractions).
+  - Uses baseline-aligned inline composition so surrounding expression content aligns with fraction bars.
   - Implements **4-Way Viewport Panning**: Pans horizontally and vertically when 2D expressions exceed visible input bounds.
   - Renders directional scroll arrows (`▲`, `▼`, `◀`, `▶`) on viewport edges.
 - **Keypad Renderer & Hit-Testing (`keypad.rs`)**:
@@ -108,12 +115,17 @@ graph TD
   ```rust
   pub enum AppAction {
       InsertChar(char),
-      InsertLaTeX(String),
+      InsertStr(String),
+      InsertFraction,
+      InsertSqrt,
+      Backspace,
       MoveCursorLeft,
       MoveCursorRight,
-      MoveCursorUp,
-      MoveCursorDown,
-      ClickCanvas(u16, u16),
+      MoveCursorHome,
+      MoveCursorEnd,
+      ScrollUp,
+      ScrollDown,
+      ClickAt(u16, u16),
       Evaluate,
       StoreVariable(char), // Shift + Letter
       InsertVariable(char),
@@ -121,6 +133,7 @@ graph TD
       AllClear,
       ToggleAngleUnit,
       OpenHelp,
+      CloseHelp,
       Quit,
   }
   ```
@@ -128,7 +141,7 @@ graph TD
 
 ---
 
-## 📦 Dependencies & Cargo Stack
+## Dependencies & Cargo Stack
 
 - **`ratatui = "0.29"`**: Terminal User Interface widgets and layout framework.
 - **`crossterm = "0.28"`**: Cross-platform terminal control, mouse capture, and keyboard event handling.

@@ -19,6 +19,14 @@ An advanced, CASIO-inspired Scientific Terminal UI (TUI) Calculator built in **R
 - **Precision Cursor Navigation**:
   - Cursor movement via arrow keys (Left, Right, Up, Down).
   - Direct Mouse Position Click: Clicking any character/symbol in the rendering canvas moves the editing cursor directly to that character index.
+- **Structured Fraction Editing (2D, not plain text placeholder)**:
+  - Pressing the fraction button inserts a true fraction node with editable numerator and denominator regions.
+  - The input canvas renders the fraction as multiline stacked layout (`numerator`, horizontal bar, `denominator`) instead of showing only `\frac{}{}`
+  - Up/Down navigation switches between numerator and denominator while preserving horizontal visual position.
+  - If denominator is empty and Backspace is pressed from denominator start, the fraction collapses back to inline numerator text (reverse of fraction insertion).
+- **Baseline Inline Alignment**:
+  - Content outside fractions stays aligned with the fraction bar line for easier reading.
+  - Multiple inline fractions align to the same baseline unless nesting/layout context requires otherwise.
 - **Token-Aware Backspace for Inserted Functions**:
   - Function snippets inserted as predefined tokens (e.g. `sin(`, `cos(`, `asin(`, `det(`, `eigenval(`, `norm(`, `log(`, `ln(`, `ans`, `pi`, `√(`) are removed in one Backspace press when the cursor is directly after the token.
   - Regular text editing still supports single-character Backspace behavior.

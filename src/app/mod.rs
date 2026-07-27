@@ -1,3 +1,4 @@
+pub mod editor;
 pub mod history;
 pub mod variables;
 
@@ -7,29 +8,12 @@ pub use variables::VariableStore;
 use crate::config::{AngleUnit, Settings};
 use crate::eval::{Evaluator, Value};
 use crate::parser::parse_expression;
-
-const BACKSPACE_TOKENS: &[&str] = &[
-    "eigenval(",
-    "asin(",
-    "acos(",
-    "atan(",
-    "sin(",
-    "cos(",
-    "tan(",
-    "det(",
-    "inv(",
-    "norm(",
-    "log(",
-    "ln(",
-    "ans",
-    "pi",
-    "√(",
-];
+use editor::{EditorRender, EditorState};
 
 #[derive(Debug, Clone)]
 pub struct App {
+    editor: EditorState,
     pub input: String,
-    pub cursor_pos: usize,
     pub scroll_x: usize,
     pub scroll_y: usize,
     pub result: String,
@@ -48,8 +32,8 @@ impl Default for App {
     fn default() -> Self {
         let settings = Settings::load();
         Self {
+            editor: EditorState::default(),
             input: String::new(),
-            cursor_pos: 0,
             scroll_x: 0,
             scroll_y: 0,
             result: String::new(),
@@ -73,134 +57,65 @@ impl App {
 
     pub fn insert_char(&mut self, c: char) {
         self.error_message = None;
-        if self.cursor_pos >= self.input.len() {
-            self.input.push(c);
-        } else {
-            self.input.insert(self.cursor_pos, c);
-        }
-        self.cursor_pos += 1;
+        self.editor.insert_char(c);
+        self.sync_input_snapshot();
     }
 
     pub fn insert_str(&mut self, s: &str) {
         self.error_message = None;
-        if self.cursor_pos >= self.input.len() {
-            self.input.push_str(s);
-        } else {
-            self.input.insert_str(self.cursor_pos, s);
-        }
-        self.cursor_pos += s.len();
+        self.editor.insert_str(s);
+        self.sync_input_snapshot();
     }
 
     pub fn insert_fraction(&mut self) {
         self.error_message = None;
-        let pos = self.cursor_pos;
-        let bytes = self.input.as_bytes();
-
-        // Scan backwards for preceding number
-        let mut start = pos;
-        while start > 0 {
-            let ch = bytes[start - 1] as char;
-            if ch.is_ascii_digit() || ch == '.' {
-                start -= 1;
-            } else {
-                break;
-            }
-        }
-
-        if start < pos {
-            let num = self.input[start..pos].to_string();
-            self.input.drain(start..pos);
-            let frac_str = format!("\\frac{{{}}}{{}}", num);
-            self.input.insert_str(start, &frac_str);
-            // Place cursor inside denominator
-            self.cursor_pos = start + frac_str.len() - 1;
-        } else {
-            let frac_str = "\\frac{}{}";
-            if self.cursor_pos >= self.input.len() {
-                self.input.push_str(frac_str);
-            } else {
-                self.input.insert_str(self.cursor_pos, frac_str);
-            }
-            // Place cursor inside numerator
-            self.cursor_pos = pos + 6; // \frac{ -> 6 chars
-        }
+        self.editor.insert_fraction();
+        self.sync_input_snapshot();
     }
 
     pub fn insert_sqrt(&mut self) {
         self.error_message = None;
-        let sqrt_str = "√(";
-        if self.cursor_pos >= self.input.len() {
-            self.input.push_str(sqrt_str);
-        } else {
-            self.input.insert_str(self.cursor_pos, sqrt_str);
-        }
-        self.cursor_pos += sqrt_str.len();
+        self.editor.insert_str("√(");
+        self.sync_input_snapshot();
     }
 
     pub fn backspace(&mut self) {
         self.error_message = None;
-        if self.cursor_pos == 0 || self.input.is_empty() {
-            return;
-        }
-
-        if let Some(token_len) = self.token_len_before_cursor() {
-            let start = self.cursor_pos - token_len;
-            self.input.drain(start..self.cursor_pos);
-            self.cursor_pos = start;
-            return;
-        }
-
-        if let Some((char_start, _)) = self.input[..self.cursor_pos].char_indices().last() {
-            self.input.remove(char_start);
-            self.cursor_pos = char_start;
-        }
-    }
-
-    fn token_len_before_cursor(&self) -> Option<usize> {
-        if self.cursor_pos == 0 || self.cursor_pos > self.input.len() {
-            return None;
-        }
-
-        let before_cursor = &self.input[..self.cursor_pos];
-        BACKSPACE_TOKENS
-            .iter()
-            .filter_map(|token| before_cursor.ends_with(token).then_some(token.len()))
-            .max()
+        self.editor.backspace();
+        self.sync_input_snapshot();
     }
 
     pub fn move_cursor_left(&mut self) {
-        if self.cursor_pos > 0 {
-            self.cursor_pos -= 1;
-        }
+        self.editor.move_left();
     }
 
     pub fn move_cursor_right(&mut self) {
-        if self.cursor_pos < self.input.len() {
-            self.cursor_pos += 1;
-        }
+        self.editor.move_right();
     }
 
     pub fn move_cursor_home(&mut self) {
-        self.cursor_pos = 0;
+        self.editor.move_home();
     }
 
     pub fn move_cursor_end(&mut self) {
-        self.cursor_pos = self.input.len();
+        self.editor.move_end();
     }
 
     pub fn scroll_up(&mut self) {
-        if self.scroll_y > 0 {
+        if !self.editor.move_up() && self.scroll_y > 0 {
             self.scroll_y -= 1;
         }
     }
 
     pub fn scroll_down(&mut self) {
-        self.scroll_y += 1;
+        if !self.editor.move_down() {
+            self.scroll_y += 1;
+        }
     }
 
     pub fn clear_input(&mut self) {
-        self.input.clear();
-        self.cursor_pos = 0;
+        self.editor.clear();
+        self.sync_input_snapshot();
         self.scroll_x = 0;
         self.scroll_y = 0;
         self.error_message = None;
@@ -237,7 +152,9 @@ impl App {
 
     pub fn evaluate(&mut self) {
         self.error_message = None;
-        let expr_str = self.input.trim();
+        self.sync_input_snapshot();
+        let expr = self.input.clone();
+        let expr_str = expr.trim();
         if expr_str.is_empty() {
             return;
         }
@@ -265,5 +182,13 @@ impl App {
                 self.debug_log = format!("Parse Error: {}", err);
             }
         }
+    }
+
+    pub fn render_expression(&self) -> EditorRender {
+        self.editor.render()
+    }
+
+    fn sync_input_snapshot(&mut self) {
+        self.input = self.editor.to_plain_text();
     }
 }

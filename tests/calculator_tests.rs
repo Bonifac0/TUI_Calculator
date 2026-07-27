@@ -61,6 +61,9 @@ fn test_smart_fraction_and_sqrt() {
     app.insert_fraction();
     assert_eq!(app.input, "\\frac{25}{}");
 
+    app.backspace();
+    assert_eq!(app.input, "25");
+
     app.clear_input();
     app.insert_sqrt();
     app.insert_str("16)");

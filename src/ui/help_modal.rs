@@ -11,9 +11,9 @@ pub fn render(frame: &mut Frame, area: Rect) {
     let modal_area = centered_rect(70, 70, area);
 
     let text = vec![
-        Line::from(Span::styled("📖 TUI Calculator Help & Quick Reference", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD))),
+        Line::from(Span::styled("TUI Calculator Help & Quick Reference", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD))),
         Line::from(""),
-        Line::from(Span::styled("⌨️ Keybindings & Controls:", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD))),
+        Line::from(Span::styled("Keybindings & Controls:", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD))),
         Line::from("  • Type Numbers & Operators (+, -, *, /, ^, !) directly from keyboard"),
         Line::from("  • Enter or '='       : Evaluate expression"),
         Line::from("  • Backspace         : Delete character before cursor"),
@@ -27,7 +27,7 @@ pub fn render(frame: &mut Frame, area: Rect) {
         Line::from("  • '?' / F1          : Toggle Help Modal"),
         Line::from("  • 'q' / Esc         : Quit application"),
         Line::from(""),
-        Line::from(Span::styled("📐 LaTeX Syntax Support:", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD))),
+        Line::from(Span::styled("LaTeX Syntax Support:", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD))),
         Line::from("  • Fractions         : \\frac{numerator}{denominator}"),
         Line::from("  • Square Root       : \\sqrt{expression}"),
         Line::from("  • Inline Matrices   : [[1, 2], [3, 4]] or [1, 2; 3, 4]"),
