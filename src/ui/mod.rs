@@ -94,15 +94,17 @@ pub fn draw(frame: &mut Frame, app: &mut App) -> Vec<Button> {
         keypad::render_basic_keypad(frame, bottom_chunks[0], &mut buttons);
         keypad::render_advanced_keypad(frame, bottom_chunks[1], &mut buttons);
     } else {
-        // Small Mode: Minimal vertical layout
+        // Small Mode: Compact stack with the result shown below the expression canvas
         let body_split = Layout::vertical([
-            Constraint::Min(5),
-            Constraint::Length(15),  // 5 rows × 3 lines each = comfortably clickable buttons
+            Constraint::Min(4),
+            Constraint::Length(3),
+            Constraint::Length(15), // 5 rows × 3 lines each
         ])
         .split(chunks[1]);
 
         canvas::render(frame, body_split[0], app);
-        keypad::render_basic_keypad(frame, body_split[1], &mut buttons);
+        render_result_box(frame, body_split[1], app);
+        keypad::render_basic_keypad(frame, body_split[2], &mut buttons);
     }
 
     // Footer / Error Bar
