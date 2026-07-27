@@ -9,9 +9,7 @@ license=('MIT')
 depends=()
 makedepends=('rust' 'cargo')
 source=("$pkgname-$pkgver.tar.gz::https://github.com/Bonifac0/TUI_Calculator/archive/refs/tags/v$pkgver.tar.gz")
-sha256sums=('SKIP')
-# ^^^^^ Replace 'SKIP' with the real SHA256 after tagging v0.1.0:
-#   curl -sL https://github.com/Bonifac0/TUI_Calculator/archive/refs/tags/v0.1.0.tar.gz | sha256sum
+sha256sums=('b49fb7e38b02273f566480d50fcfbeb5d8c60bcbe144f24cf5c1f13ba0cc23fc')
 
 build() {
     cd "TUI_Calculator-$pkgver"
