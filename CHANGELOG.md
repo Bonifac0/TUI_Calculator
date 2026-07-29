@@ -17,6 +17,7 @@ Hint how to make changelogs: https://keepachangelog.com/en/1.0.0/ --->
 
 ### Added
 - Direct keypad buttons for `(`, `)`, `[`, and `]`.
+- Vim-style `h`, `j`, `k`, `l` cursor movement shortcuts.
 
 ## [0.1.0] - 2026-07-27
 

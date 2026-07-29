@@ -34,10 +34,10 @@ fn handle_key_event(key: KeyEvent) -> AppAction {
         KeyCode::Char('q') | KeyCode::Char('Q') => AppAction::Quit,
         KeyCode::Esc => AppAction::Quit,
         KeyCode::Char('?') | KeyCode::F(1) => AppAction::OpenHelp,
-        KeyCode::Left => AppAction::MoveCursorLeft,
-        KeyCode::Right => AppAction::MoveCursorRight,
-        KeyCode::Up => AppAction::ScrollUp,
-        KeyCode::Down => AppAction::ScrollDown,
+        KeyCode::Left | KeyCode::Char('h') | KeyCode::Char('H') => AppAction::MoveCursorLeft,
+        KeyCode::Right | KeyCode::Char('l') | KeyCode::Char('L') => AppAction::MoveCursorRight,
+        KeyCode::Up | KeyCode::Char('k') | KeyCode::Char('K') => AppAction::ScrollUp,
+        KeyCode::Down | KeyCode::Char('j') | KeyCode::Char('J') => AppAction::ScrollDown,
         KeyCode::Home => AppAction::MoveCursorHome,
         KeyCode::End => AppAction::MoveCursorEnd,
         KeyCode::Backspace => AppAction::Backspace,
@@ -58,5 +58,30 @@ fn handle_mouse_event(mouse: MouseEvent) -> Option<AppAction> {
         MouseEventKind::ScrollUp => Some(AppAction::ScrollUp),
         MouseEventKind::ScrollDown => Some(AppAction::ScrollDown),
         _ => None,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn maps_vim_navigation_keys() {
+        assert_eq!(
+            handle_key_event(KeyEvent::new(KeyCode::Char('h'), KeyModifiers::NONE)),
+            AppAction::MoveCursorLeft
+        );
+        assert_eq!(
+            handle_key_event(KeyEvent::new(KeyCode::Char('l'), KeyModifiers::NONE)),
+            AppAction::MoveCursorRight
+        );
+        assert_eq!(
+            handle_key_event(KeyEvent::new(KeyCode::Char('k'), KeyModifiers::NONE)),
+            AppAction::ScrollUp
+        );
+        assert_eq!(
+            handle_key_event(KeyEvent::new(KeyCode::Char('j'), KeyModifiers::NONE)),
+            AppAction::ScrollDown
+        );
     }
 }

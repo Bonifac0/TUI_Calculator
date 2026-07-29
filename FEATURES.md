@@ -17,7 +17,7 @@ An advanced, CASIO-inspired Scientific Terminal UI (TUI) Calculator built in **R
   - **4-Directional Overflow Indicators**: Visual arrows (`▲`, `▼`, `◀`, `▶`) appear along the viewport borders to indicate off-screen mathematical content.
   - **Up/Down Arrow Navigation**: Users can navigate multiline/2D expressions up and down using Up/Down arrow keys or mouse scroll.
 - **Precision Cursor Navigation**:
-  - Cursor movement via arrow keys (Left, Right, Up, Down).
+  - Cursor movement via arrow keys (Left, Right, Up, Down) and vim-style `h`, `j`, `k`, `l`.
   - Direct Mouse Position Click: Clicking any character/symbol in the rendering canvas moves the editing cursor directly to that character index.
 - **Structured Fraction Editing (2D, not plain text placeholder)**:
   - Pressing the fraction button inserts a true fraction node with editable numerator and denominator regions.
