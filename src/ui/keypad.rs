@@ -21,7 +21,15 @@ pub fn render_basic_keypad(frame: &mut Frame, area: Rect, buttons_out: &mut Vec<
         vec![("7", AppAction::InsertChar('7'), Color::White), ("8", AppAction::InsertChar('8'), Color::White), ("9", AppAction::InsertChar('9'), Color::White), ("×", AppAction::InsertChar('*'), Color::Yellow)],
         vec![("4", AppAction::InsertChar('4'), Color::White), ("5", AppAction::InsertChar('5'), Color::White), ("6", AppAction::InsertChar('6'), Color::White), ("-", AppAction::InsertChar('-'), Color::Yellow)],
         vec![("1", AppAction::InsertChar('1'), Color::White), ("2", AppAction::InsertChar('2'), Color::White), ("3", AppAction::InsertChar('3'), Color::White), ("+", AppAction::InsertChar('+'), Color::Yellow)],
-        vec![("0", AppAction::InsertChar('0'), Color::White), (".", AppAction::InsertChar('.'), Color::White), ("=", AppAction::Evaluate, Color::Green)],
+        vec![
+            ("0", AppAction::InsertChar('0'), Color::White),
+            (".", AppAction::InsertChar('.'), Color::White),
+            ("(", AppAction::InsertChar('('), Color::White),
+            (")", AppAction::InsertChar(')'), Color::White),
+            ("[", AppAction::InsertChar('['), Color::White),
+            ("]", AppAction::InsertChar(']'), Color::White),
+            ("=", AppAction::Evaluate, Color::Green),
+        ],
     ];
 
     let row_constraints = vec![Constraint::Ratio(1, 5); 5];

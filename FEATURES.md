@@ -49,6 +49,7 @@ An advanced, CASIO-inspired Scientific Terminal UI (TUI) Calculator built in **R
 - **Trigger**: Pressing `Enter` or clicking the `=` button evaluates the expression.
 - **Output Box**: Displays the computed result in the top result pane.
 - **Automatic `ans` Assignment**: Every evaluated result is automatically saved to `ans` for use in subsequent expressions.
+- **Extra Bracket Buttons**: The basic keypad includes direct insertion buttons for `(`, `)`, `[`, and `]`.
 
 ### 2.2 User Variables (`A` through `F`)
 - **Storage**: 6 user-assignable variables (`A`, `B`, `C`, `D`, `E`, `F`). Default value = `0`.
