@@ -30,6 +30,9 @@ An advanced, CASIO-inspired Scientific Terminal UI (TUI) Calculator built in **R
 - **Token-Aware Backspace for Inserted Functions**:
   - Function snippets inserted as predefined tokens (e.g. `sin(`, `cos(`, `asin(`, `det(`, `eigenval(`, `norm(`, `log(`, `ln(`, `ans`, `pi`, `√(`) are removed in one Backspace press when the cursor is directly after the token.
   - Regular text editing still supports single-character Backspace behavior.
+- **Delete Key Shortcuts**:
+  - `Del` clears the active expression.
+  - `Shift + Del` performs All Clear (reset input, result, history, and variables).
 
 ### 1.2 Matrix & Vector Inline & LaTeX Syntax
 - **Inline Array Syntax**: `[[1, 2], [3, 4]]` or `[1, 2; 3, 4]`.

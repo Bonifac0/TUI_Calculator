@@ -41,9 +41,10 @@ fn handle_key_event(key: KeyEvent) -> AppAction {
         KeyCode::Home => AppAction::MoveCursorHome,
         KeyCode::End => AppAction::MoveCursorEnd,
         KeyCode::Backspace => AppAction::Backspace,
+        KeyCode::Delete if key.modifiers.contains(KeyModifiers::SHIFT) => AppAction::AllClear,
+        KeyCode::Delete => AppAction::ClearInput,
         KeyCode::Enter | KeyCode::Char('=') => AppAction::Evaluate,
         KeyCode::Char('c') if key.modifiers.contains(KeyModifiers::CONTROL) => AppAction::AllClear,
-        KeyCode::Char('c') | KeyCode::Char('C') => AppAction::ClearInput,
         KeyCode::Char('u') | KeyCode::Char('U') => AppAction::ToggleAngleUnit,
         KeyCode::Char(c) => AppAction::InsertChar(c),
         _ => AppAction::Quit,
@@ -82,6 +83,18 @@ mod tests {
         assert_eq!(
             handle_key_event(KeyEvent::new(KeyCode::Char('j'), KeyModifiers::NONE)),
             AppAction::ScrollDown
+        );
+    }
+
+    #[test]
+    fn maps_delete_shortcuts() {
+        assert_eq!(
+            handle_key_event(KeyEvent::new(KeyCode::Delete, KeyModifiers::NONE)),
+            AppAction::ClearInput
+        );
+        assert_eq!(
+            handle_key_event(KeyEvent::new(KeyCode::Delete, KeyModifiers::SHIFT)),
+            AppAction::AllClear
         );
     }
 }

@@ -15,6 +15,9 @@ Hint how to make changelogs: https://keepachangelog.com/en/1.0.0/ --->
 
 <!--- for documenting not yet tagged changes --->
 
+### Fixed
+- Moved clear input to `Del` and all clear to `Shift+Del` so `C` can be used as a variable key.
+
 ### Added
 - Direct keypad buttons for `(`, `)`, `[`, and `]`.
 - Vim-style `h`, `j`, `k`, `l` cursor movement shortcuts.
