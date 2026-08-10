@@ -19,6 +19,7 @@ pub enum AppAction {
     ToggleAngleUnit,
     OpenHelp,
     CloseHelp,
+    Warn(String),
     Quit,
     ClickAt(u16, u16),
 }

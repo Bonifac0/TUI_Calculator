@@ -46,8 +46,17 @@ fn handle_key_event(key: KeyEvent) -> AppAction {
         KeyCode::Enter | KeyCode::Char('=') => AppAction::Evaluate,
         KeyCode::Char('c') if key.modifiers.contains(KeyModifiers::CONTROL) => AppAction::AllClear,
         KeyCode::Char('u') | KeyCode::Char('U') => AppAction::ToggleAngleUnit,
-        KeyCode::Char(c) => AppAction::InsertChar(c),
-        _ => AppAction::Quit,
+        KeyCode::Char(c) if c.is_ascii_alphabetic() => {
+            let upper = c.to_ascii_uppercase();
+            if ('A'..='F').contains(&upper) {
+                AppAction::InsertVariable(upper)
+            } else {
+                AppAction::Warn(format!("Ignored key '{}': only A-F can be inserted", c))
+            }
+        }
+        KeyCode::Char(c) if is_allowed_symbol(c) => AppAction::InsertChar(c),
+        KeyCode::Char(c) => AppAction::Warn(format!("Ignored key '{}': not a valid input symbol", c)),
+        _ => AppAction::Warn(format!("Ignored key: {:?}", key.code)),
     }
 }
 
@@ -60,6 +69,19 @@ fn handle_mouse_event(mouse: MouseEvent) -> Option<AppAction> {
         MouseEventKind::ScrollDown => Some(AppAction::ScrollDown),
         _ => None,
     }
+}
+
+fn is_allowed_symbol(c: char) -> bool {
+    matches!(c,
+        // digits and decimal
+        '0'..='9' | '.' |
+        // arithmetic operators
+        '+' | '-' | '*' | '/' | '%' | '^' | '!' |
+        // brackets and delimiters
+        '(' | ')' | '[' | ']' | '{' | '}' | ',' | ';' |
+        // LaTeX entry and display aliases
+        '\\' | '×' | '÷' | '√'
+    )
 }
 
 #[cfg(test)]
@@ -95,6 +117,58 @@ mod tests {
         assert_eq!(
             handle_key_event(KeyEvent::new(KeyCode::Delete, KeyModifiers::SHIFT)),
             AppAction::AllClear
+        );
+    }
+
+    #[test]
+    fn maps_variable_letters_to_uppercase() {
+        assert_eq!(
+            handle_key_event(KeyEvent::new(KeyCode::Char('a'), KeyModifiers::NONE)),
+            AppAction::InsertVariable('A')
+        );
+        assert_eq!(
+            handle_key_event(KeyEvent::new(KeyCode::Char('f'), KeyModifiers::NONE)),
+            AppAction::InsertVariable('F')
+        );
+    }
+
+    #[test]
+    fn warns_on_non_variable_letters() {
+        assert_eq!(
+            handle_key_event(KeyEvent::new(KeyCode::Char('g'), KeyModifiers::NONE)),
+            AppAction::Warn("Ignored key 'g': only A-F can be inserted".to_string())
+        );
+    }
+
+    #[test]
+    fn allows_math_symbols() {
+        assert_eq!(
+            handle_key_event(KeyEvent::new(KeyCode::Char('+'), KeyModifiers::NONE)),
+            AppAction::InsertChar('+')
+        );
+        assert_eq!(
+            handle_key_event(KeyEvent::new(KeyCode::Char('!'), KeyModifiers::NONE)),
+            AppAction::InsertChar('!')
+        );
+        assert_eq!(
+            handle_key_event(KeyEvent::new(KeyCode::Char('^'), KeyModifiers::NONE)),
+            AppAction::InsertChar('^')
+        );
+    }
+
+    #[test]
+    fn warns_on_disallowed_symbols() {
+        assert_eq!(
+            handle_key_event(KeyEvent::new(KeyCode::Char('@'), KeyModifiers::NONE)),
+            AppAction::Warn("Ignored key '@': not a valid input symbol".to_string())
+        );
+        assert_eq!(
+            handle_key_event(KeyEvent::new(KeyCode::Char('~'), KeyModifiers::NONE)),
+            AppAction::Warn("Ignored key '~': not a valid input symbol".to_string())
+        );
+        assert_eq!(
+            handle_key_event(KeyEvent::new(KeyCode::Char('#'), KeyModifiers::NONE)),
+            AppAction::Warn("Ignored key '#': not a valid input symbol".to_string())
         );
     }
 }

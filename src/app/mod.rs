@@ -55,32 +55,43 @@ impl App {
         Self::default()
     }
 
-    pub fn insert_char(&mut self, c: char) {
+    pub fn warn(&mut self, msg: String) {
+        self.debug_log = format!("Warning: {}", msg);
+    }
+
+    fn clear_transient_state(&mut self) {
         self.error_message = None;
+        if self.debug_log.starts_with("Warning:") {
+            self.debug_log = "Ready".to_string();
+        }
+    }
+
+    pub fn insert_char(&mut self, c: char) {
+        self.clear_transient_state();
         self.editor.insert_char(c);
         self.sync_input_snapshot();
     }
 
     pub fn insert_str(&mut self, s: &str) {
-        self.error_message = None;
+        self.clear_transient_state();
         self.editor.insert_str(s);
         self.sync_input_snapshot();
     }
 
     pub fn insert_fraction(&mut self) {
-        self.error_message = None;
+        self.clear_transient_state();
         self.editor.insert_fraction();
         self.sync_input_snapshot();
     }
 
     pub fn insert_sqrt(&mut self) {
-        self.error_message = None;
+        self.clear_transient_state();
         self.editor.insert_str("√(");
         self.sync_input_snapshot();
     }
 
     pub fn backspace(&mut self) {
-        self.error_message = None;
+        self.clear_transient_state();
         self.editor.backspace();
         self.sync_input_snapshot();
     }

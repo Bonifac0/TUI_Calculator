@@ -95,6 +95,7 @@ fn execute_action(app: &mut App, action: AppAction, buttons: &[ui::keypad::Butto
         AppAction::ToggleAngleUnit => app.toggle_angle_unit(),
         AppAction::OpenHelp => app.show_help = !app.show_help,
         AppAction::CloseHelp => app.show_help = false,
+        AppAction::Warn(msg) => app.warn(msg),
         AppAction::Quit => app.exit = true,
         AppAction::ClickAt(col, row) => {
             if app.show_help {

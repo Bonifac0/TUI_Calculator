@@ -33,6 +33,13 @@ An advanced, CASIO-inspired Scientific Terminal UI (TUI) Calculator built in **R
 - **Delete Key Shortcuts**:
   - `Del` clears the active expression.
   - `Shift + Del` performs All Clear (reset input, result, history, and variables).
+  - `C` is reserved for the `C` variable/register input and no longer clears the expression.
+- **Symbol Allowlist**:
+  - Only characters meaningful to the parser are accepted as direct keyboard input: digits (`0`–`9`), `.`, operators (`+`, `-`, `*`, `/`, `%`, `^`, `!`), brackets/delimiters (`(`, `)`, `[`, `]`, `{`, `}`, `,`, `;`), and display aliases (`\`, `×`, `÷`, `√`).
+  - All other symbols (e.g. `~`, `@`, `#`, `$`) are blocked.
+- **Footer Warning Bar**:
+  - Pressing a disallowed symbol, a non-variable letter (`G`–`Z`), or any unmapped key displays a yellow warning in the footer bar beneath the keypad.
+  - The warning automatically clears on the next valid input.
 
 ### 1.2 Matrix & Vector Inline & LaTeX Syntax
 - **Inline Array Syntax**: `[[1, 2], [3, 4]]` or `[1, 2; 3, 4]`.
@@ -59,7 +66,8 @@ An advanced, CASIO-inspired Scientific Terminal UI (TUI) Calculator built in **R
 - **Assignment**:
   - `Shift + <Letter>` (or clicking `STO <Letter>`) assigns the current `ans` value (or scalar/matrix) to that variable.
 - **Usage**:
-  - Pressing `<Letter>` (e.g. `A`) inserts the variable into the active expression.
+  - Pressing `<Letter>` (e.g. `A`–`F`) inserts the variable into the active expression. Letters are always inserted as uppercase regardless of shift state.
+  - Only letters `A`–`F` can be typed into the expression; pressing any other letter shows a warning in the footer bar.
 - **Session Lifecycle**: Variables are **in-memory only** and reset to `0` when the application exits.
 
 ---

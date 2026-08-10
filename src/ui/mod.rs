@@ -155,6 +155,8 @@ fn render_result_box(frame: &mut Frame, area: Rect, app: &App) {
 fn render_footer(frame: &mut Frame, area: Rect, app: &App) {
     let footer_text = if let Some(ref err) = app.error_message {
         Line::from(Span::styled(format!(" Error: {}", err), Style::default().fg(Color::Red).add_modifier(Modifier::BOLD)))
+    } else if app.debug_log.starts_with("Warning:") {
+        Line::from(Span::styled(format!(" {}", app.debug_log), Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)))
     } else {
         Line::from(Span::styled(" Ready ", Style::default().fg(Color::DarkGray)))
     };
