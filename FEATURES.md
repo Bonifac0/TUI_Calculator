@@ -21,8 +21,10 @@ An advanced, CASIO-inspired Scientific Terminal UI (TUI) Calculator built in **R
   - Direct Mouse Position Click: Clicking any character/symbol in the rendering canvas moves the editing cursor directly to that character index.
 - **Structured Fraction Editing (2D, not plain text placeholder)**:
   - Pressing the fraction button inserts a true fraction node with editable numerator and denominator regions.
+  - If the cursor is on/inside a number token, the whole number token is consumed into the numerator and the cursor is placed in the denominator (quick division behavior).
   - The input canvas renders the fraction as multiline stacked layout (`numerator`, horizontal bar, `denominator`) instead of showing only `\frac{}{}`
-  - Up/Down navigation switches between numerator and denominator while preserving horizontal visual position.
+  - Up/Down navigation switches between numerator and denominator while preserving horizontal visual position, including nested fractions.
+  - In nested fractions, moving up/down can enter and exit inner fractions while keeping the cursor on the same visual X position when possible.
   - If denominator is empty and Backspace is pressed from denominator start, the fraction collapses back to inline numerator text (reverse of fraction insertion).
 - **Baseline Inline Alignment**:
   - Content outside fractions stays aligned with the fraction bar line for easier reading.

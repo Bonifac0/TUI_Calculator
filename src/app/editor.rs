@@ -4,6 +4,12 @@ enum FractionSlot {
     Denominator,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum VerticalMove {
+    Up,
+    Down,
+}
+
 #[derive(Debug, Clone, PartialEq)]
 enum ExprNode {
     Char(char),
@@ -94,16 +100,40 @@ impl EditorState {
         let idx = self.cursor.index;
         let container = self.container_mut(&path);
 
+        let is_number_char = |node: &ExprNode| match node {
+            ExprNode::Char(ch) => ch.is_ascii_digit() || *ch == '.',
+            ExprNode::Fraction { .. } => false,
+        };
+        let is_variable_char = |node: &ExprNode| match node {
+            ExprNode::Char(ch) => ('A'..='F').contains(ch),
+            ExprNode::Fraction { .. } => false,
+        };
+
         let mut start = idx;
-        while start > 0 {
-            match container[start - 1] {
-                ExprNode::Char(ch) if ch.is_ascii_digit() || ch == '.' => start -= 1,
-                _ => break,
+        let mut end = idx;
+
+        // Consume entire numeric token around the cursor (left and right).
+        if (idx > 0 && is_number_char(&container[idx - 1]))
+            || (idx < container.len() && is_number_char(&container[idx]))
+        {
+            while start > 0 && is_number_char(&container[start - 1]) {
+                start -= 1;
             }
+            while end < container.len() && is_number_char(&container[end]) {
+                end += 1;
+            }
+        // Consume a single variable token A-F under/left of cursor.
+        } else if idx > 0 && is_variable_char(&container[idx - 1]) {
+            start = idx - 1;
+            end = idx;
+        } else if idx < container.len() && is_variable_char(&container[idx]) {
+            start = idx;
+            end = idx + 1;
         }
 
-        let numerator = if start < idx {
-            container.drain(start..idx).collect()
+        let consumed = start < end;
+        let numerator = if consumed {
+            container.drain(start..end).collect()
         } else {
             Vec::new()
         };
@@ -116,7 +146,7 @@ impl EditorState {
 
         self.cursor.path.push(CursorStep {
             fraction_index: start,
-            slot: if start < idx {
+            slot: if consumed {
                 FractionSlot::Denominator
             } else {
                 FractionSlot::Numerator
@@ -183,26 +213,66 @@ impl EditorState {
     }
 
     pub fn move_left(&mut self) {
-        if self.cursor.index > 0 {
-            self.cursor.index -= 1;
+        let idx = self.cursor.index;
+
+        if idx > 0 {
+            // Check if the node to the left is a fraction — enter its denominator at the end
+            let den_entry = {
+                let path = self.cursor.path.clone();
+                let container = self.container(&path);
+                if let ExprNode::Fraction { denominator, .. } = &container[idx - 1] {
+                    Some((idx - 1, denominator.len()))
+                } else {
+                    None
+                }
+            };
+
+            if let Some((fraction_index, den_len)) = den_entry {
+                self.cursor.path.push(CursorStep {
+                    fraction_index,
+                    slot: FractionSlot::Denominator,
+                });
+                self.cursor.index = den_len;
+            } else {
+                self.cursor.index -= 1;
+            }
             return;
         }
 
+        // At start of current container → exit to parent, cursor before the fraction
         if let Some(step) = self.cursor.path.pop() {
             self.cursor.index = step.fraction_index;
         }
     }
 
     pub fn move_right(&mut self) {
-        let path = self.cursor.path.clone();
-        let len = self.container(&path).len();
-        if self.cursor.index < len {
-            self.cursor.index += 1;
-            return;
-        }
+        let idx = self.cursor.index;
 
-        if let Some(step) = self.cursor.path.pop() {
-            self.cursor.index = step.fraction_index + 1;
+        let (at_end, is_fraction) = {
+            let path = self.cursor.path.clone();
+            let container = self.container(&path);
+            let len = container.len();
+            if idx >= len {
+                (true, false)
+            } else {
+                (false, matches!(container[idx], ExprNode::Fraction { .. }))
+            }
+        };
+
+        if at_end {
+            // At end of current container → exit to parent, cursor after the fraction
+            if let Some(step) = self.cursor.path.pop() {
+                self.cursor.index = step.fraction_index + 1;
+            }
+        } else if is_fraction {
+            // Node to the right is a fraction — enter its numerator at the start
+            self.cursor.path.push(CursorStep {
+                fraction_index: idx,
+                slot: FractionSlot::Numerator,
+            });
+            self.cursor.index = 0;
+        } else {
+            self.cursor.index += 1;
         }
     }
 
@@ -220,7 +290,20 @@ impl EditorState {
             return self.enter_adjacent_fraction(FractionSlot::Numerator);
         }
 
-        self.switch_fraction_slot(FractionSlot::Numerator)
+        let last = self.cursor.path.last().copied().unwrap();
+        if last.slot == FractionSlot::Numerator && self.cursor.path.len() > 1 {
+            // Already in a numerator: go up to the parent fraction's numerator.
+            let parent_step = self.cursor.path[self.cursor.path.len() - 2];
+            let current_path = self.cursor.path[..self.cursor.path.len() - 1].to_vec();
+            let mut target_path = self.cursor.path[..self.cursor.path.len() - 2].to_vec();
+            target_path.push(CursorStep {
+                fraction_index: parent_step.fraction_index,
+                slot: FractionSlot::Numerator,
+            });
+            return self.relocate_between_slots(current_path, target_path, VerticalMove::Up);
+        }
+
+        self.switch_fraction_slot(FractionSlot::Numerator, VerticalMove::Up)
     }
 
     pub fn move_down(&mut self) -> bool {
@@ -228,7 +311,20 @@ impl EditorState {
             return self.enter_adjacent_fraction(FractionSlot::Denominator);
         }
 
-        self.switch_fraction_slot(FractionSlot::Denominator)
+        let last = self.cursor.path.last().copied().unwrap();
+        if last.slot == FractionSlot::Denominator && self.cursor.path.len() > 1 {
+            // Already in a denominator: go down to the parent fraction's denominator.
+            let parent_step = self.cursor.path[self.cursor.path.len() - 2];
+            let current_path = self.cursor.path[..self.cursor.path.len() - 1].to_vec();
+            let mut target_path = self.cursor.path[..self.cursor.path.len() - 2].to_vec();
+            target_path.push(CursorStep {
+                fraction_index: parent_step.fraction_index,
+                slot: FractionSlot::Denominator,
+            });
+            return self.relocate_between_slots(current_path, target_path, VerticalMove::Down);
+        }
+
+        self.switch_fraction_slot(FractionSlot::Denominator, VerticalMove::Down)
     }
 
     pub fn to_plain_text(&self) -> String {
@@ -294,25 +390,75 @@ impl EditorState {
         }
     }
 
-    fn switch_fraction_slot(&mut self, target_slot: FractionSlot) -> bool {
-        let Some(step) = self.cursor.path.last().copied() else {
+    fn switch_fraction_slot(&mut self, target_slot: FractionSlot, vertical_move: VerticalMove) -> bool {
+        if self.cursor.path.is_empty() {
             return false;
-        };
+        }
 
-        let parent_path = self.cursor.path[..self.cursor.path.len() - 1].to_vec();
-        let mut current_path = self.cursor.path.clone();
         let mut target_path = self.cursor.path.clone();
         if let Some(last) = target_path.last_mut() {
             last.slot = target_slot;
         }
-        if let Some(last) = current_path.last_mut() {
-            last.slot = step.slot;
+
+        self.relocate_between_slots(self.cursor.path.clone(), target_path, vertical_move)
+    }
+
+    fn cursor_prefix_in_container(&self, container_path: &[CursorStep]) -> usize {
+        if self.cursor.path == container_path {
+            let boundaries = self.container_boundaries(container_path);
+            return *boundaries
+                .get(self.cursor.index)
+                .unwrap_or(boundaries.last().unwrap_or(&0));
         }
 
+        // If this is an ancestor container of the active cursor path, compute the visual prefix
+        // by taking the cursor column inside the child subtree.
+        if self.cursor.path.len() > container_path.len()
+            && self.cursor.path[..container_path.len()] == *container_path
+        {
+            let nodes = self.container(container_path);
+            let child_step = self.cursor.path[container_path.len()];
+            if child_step.fraction_index < nodes.len() {
+                let mut prefix = 0usize;
+                for idx in 0..child_step.fraction_index {
+                    prefix += self.render_node(&nodes[idx], container_path, idx).width;
+                }
+                let child_box =
+                    self.render_node(&nodes[child_step.fraction_index], container_path, child_step.fraction_index);
+                return prefix + child_box.cursor_col.unwrap_or(0);
+            }
+        }
+
+        let boundaries = self.container_boundaries(container_path);
+        *boundaries
+            .get(self.cursor.index)
+            .unwrap_or(boundaries.last().unwrap_or(&0))
+    }
+
+    fn relocate_between_slots(
+        &mut self,
+        current_path: Vec<CursorStep>,
+        target_path: Vec<CursorStep>,
+        vertical_move: VerticalMove,
+    ) -> bool {
+        let Some(current_step) = current_path.last().copied() else {
+            return false;
+        };
+        let Some(target_step) = target_path.last().copied() else {
+            return false;
+        };
+
+        let current_parent = &current_path[..current_path.len() - 1];
+        let target_parent = &target_path[..target_path.len() - 1];
+        if current_parent != target_parent || current_step.fraction_index != target_step.fraction_index {
+            return false;
+        }
+
+        let parent_path = current_parent.to_vec();
         let num_path = {
             let mut p = parent_path.clone();
             p.push(CursorStep {
-                fraction_index: step.fraction_index,
+                fraction_index: current_step.fraction_index,
                 slot: FractionSlot::Numerator,
             });
             p
@@ -320,7 +466,7 @@ impl EditorState {
         let den_path = {
             let mut p = parent_path;
             p.push(CursorStep {
-                fraction_index: step.fraction_index,
+                fraction_index: current_step.fraction_index,
                 slot: FractionSlot::Denominator,
             });
             p
@@ -333,9 +479,7 @@ impl EditorState {
         let current_boundaries = self.container_boundaries(&current_path);
         let target_boundaries = self.container_boundaries(&target_path);
 
-        let current_prefix = *current_boundaries
-            .get(self.cursor.index)
-            .unwrap_or(current_boundaries.last().unwrap_or(&0));
+        let current_prefix = self.cursor_prefix_in_container(&current_path);
         let current_total = *current_boundaries.last().unwrap_or(&0);
         let target_total = *target_boundaries.last().unwrap_or(&0);
 
@@ -349,10 +493,87 @@ impl EditorState {
             (absolute_x - target_left).min(target_total)
         };
 
-        let target_index = nearest_boundary_index(&target_boundaries, target_prefix);
-        self.cursor.path = target_path;
-        self.cursor.index = target_index;
+        let (resolved_path, resolved_index) =
+            self.resolve_vertical_target(&target_path, target_prefix, vertical_move);
+        self.cursor.path = resolved_path;
+        self.cursor.index = resolved_index;
         true
+    }
+
+    fn resolve_vertical_target(
+        &self,
+        start_path: &[CursorStep],
+        start_prefix: usize,
+        vertical_move: VerticalMove,
+    ) -> (Vec<CursorStep>, usize) {
+        let mut current_path = start_path.to_vec();
+        let mut current_prefix = start_prefix;
+
+        loop {
+            let boundaries = self.container_boundaries(&current_path);
+            let nodes = self.container(&current_path);
+
+            if nodes.is_empty() {
+                return (current_path, 0);
+            }
+
+            let mut hit_fraction: Option<(usize, usize)> = None;
+            for idx in 0..nodes.len() {
+                let start = boundaries[idx];
+                let end = boundaries[idx + 1];
+                if current_prefix > start && current_prefix < end {
+                    if matches!(nodes[idx], ExprNode::Fraction { .. }) {
+                        hit_fraction = Some((idx, start));
+                    }
+                    break;
+                }
+            }
+
+            if let Some((fraction_index, fraction_start)) = hit_fraction {
+                let slot = match vertical_move {
+                    VerticalMove::Down => FractionSlot::Numerator,
+                    VerticalMove::Up => FractionSlot::Denominator,
+                };
+
+                let num_path = {
+                    let mut p = current_path.clone();
+                    p.push(CursorStep {
+                        fraction_index,
+                        slot: FractionSlot::Numerator,
+                    });
+                    p
+                };
+                let den_path = {
+                    let mut p = current_path.clone();
+                    p.push(CursorStep {
+                        fraction_index,
+                        slot: FractionSlot::Denominator,
+                    });
+                    p
+                };
+
+                let num_total = self.container_total_width(&num_path);
+                let den_total = self.container_total_width(&den_path);
+                let inner_w = num_total.max(den_total).max(1);
+
+                let mut next_path = current_path.clone();
+                next_path.push(CursorStep { fraction_index, slot });
+                let slot_total = self.container_total_width(&next_path);
+                let slot_left = 1 + (inner_w.saturating_sub(slot_total)) / 2;
+
+                let local_x = current_prefix.saturating_sub(fraction_start);
+                current_prefix = if local_x <= slot_left {
+                    0
+                } else {
+                    (local_x - slot_left).min(slot_total)
+                };
+                current_path = next_path;
+                continue;
+            }
+
+            let target_index = nearest_boundary_index(&boundaries, current_prefix);
+            return (current_path, target_index);
+        }
     }
 
     fn container_boundaries(&self, path: &[CursorStep]) -> Vec<usize> {

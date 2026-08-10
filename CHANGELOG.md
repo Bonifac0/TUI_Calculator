@@ -19,7 +19,8 @@ Hint how to make changelogs: https://keepachangelog.com/en/1.0.0/ --->
 - Moved clear input to `Del` and all clear to `Shift+Del` so `C` can be used as a variable key.
 - Disallowed symbols (`~`, `@`, `#`, `$`, `&`, etc.) now show a footer warning instead of being silently inserted or causing parse errors.
 - `Esc` / `q` now closes the help modal first if it is open, instead of quitting the app directly.
-
+- Fraction insertion now consumes the full numeric token around the cursor (left and right), so inserting `a/b` inside `12345` produces `\frac{12345}{}` instead of splitting the number.
+- Vertical navigation now moves out of nested fractions correctly while preserving visual X position (e.g. from inner numerator up to outer numerator).
 ### Added
 - Direct keypad buttons for `(`, `)`, `[`, and `]`.
 - Vim-style `h`, `j`, `k`, `l` cursor movement shortcuts.

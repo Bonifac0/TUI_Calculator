@@ -69,3 +69,78 @@ fn test_smart_fraction_and_sqrt() {
     app.insert_str("16)");
     assert_eq!(app.input, "√(16)");
 }
+
+#[test]
+fn test_fraction_arrow_navigation() {
+    let mut app = tui_calculator::app::App::new();
+
+    // "1" to the left → grabbed into numerator, cursor lands in denominator
+    app.insert_str("1");
+    app.insert_fraction();         // numerator="1", cursor: denominator @ 0
+    app.insert_str("3");           // denominator = "3"
+    assert_eq!(app.input, "\\frac{1}{3}");
+
+    // Right at end of denominator → exit fraction, cursor after it in root
+    app.move_cursor_right();
+    app.insert_str("4");
+    assert_eq!(app.input, "\\frac{1}{3}4");
+
+    // Home → root cursor at 0, Right → enters numerator at start
+    app.move_cursor_home();
+    app.move_cursor_right();
+    app.insert_str("X");
+    assert_eq!(app.input, "\\frac{X1}{3}4");
+
+    // Home inside numerator → cursor at 0, Left → exits to root before fraction
+    app.move_cursor_home();
+    app.move_cursor_left();
+    app.insert_str("9");
+    assert_eq!(app.input, "9\\frac{X1}{3}4");
+}
+
+#[test]
+fn test_nested_fraction_vertical_navigation_keeps_visual_x() {
+    let mut app = tui_calculator::app::App::new();
+
+    // Build: rac{1}{rac{2}{3}}
+    app.insert_str("1");
+    app.insert_fraction();
+    app.insert_str("2");
+    app.insert_fraction();
+    app.insert_str("3");
+    assert_eq!(app.input, "\\frac{1}{\\frac{2}{3}}");
+
+    // Move to outer numerator near "1"
+    app.move_cursor_home();
+    app.move_cursor_left();
+    app.scroll_up();
+
+    // Down goes through nested fraction into inner numerator near '2'.
+    app.scroll_down();
+    app.insert_str("X");
+    assert_eq!(app.input, "\\frac{1}{\\frac{X2}{3}}");
+
+    // From inner numerator, Up should move out to outer numerator near '1'.
+    app.move_cursor_home();
+    app.scroll_up();
+    app.insert_str("Y");
+    assert_eq!(app.input, "\\frac{Y1}{\\frac{X2}{3}}");
+}
+
+
+#[test]
+fn test_fraction_consumes_full_number_when_cursor_inside() {
+    let mut app = tui_calculator::app::App::new();
+    app.insert_str("12345");
+
+    // Move cursor into the middle: between '3' and '4'.
+    app.move_cursor_left();
+    app.move_cursor_left();
+
+    app.insert_fraction();
+    assert_eq!(app.input, "\\frac{12345}{}");
+
+    // Cursor should land in denominator when a token is consumed.
+    app.insert_str("2");
+    assert_eq!(app.input, "\\frac{12345}{2}");
+}
