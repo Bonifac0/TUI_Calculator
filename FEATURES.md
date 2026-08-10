@@ -142,6 +142,7 @@ The modes are:
   - Debug / Log Message Strip for error traces, warnings, or confirmation logs.
 - **Help Modal (`?` or `F1` key)**:
   - Interactive overlay window listing full keyboard shortcuts, LaTeX syntax reference, variable guide, and developer credits.
+  - Closed by pressing `?`, `F1`, `Esc`, or `q` — these keys close the modal first before any other action.
 
 ---
 

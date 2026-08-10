@@ -18,6 +18,7 @@ Hint how to make changelogs: https://keepachangelog.com/en/1.0.0/ --->
 ### Fixed
 - Moved clear input to `Del` and all clear to `Shift+Del` so `C` can be used as a variable key.
 - Disallowed symbols (`~`, `@`, `#`, `$`, `&`, etc.) now show a footer warning instead of being silently inserted or causing parse errors.
+- `Esc` / `q` now closes the help modal first if it is open, instead of quitting the app directly.
 
 ### Added
 - Direct keypad buttons for `(`, `)`, `[`, and `]`.
