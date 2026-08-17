@@ -15,6 +15,8 @@ Hint how to make changelogs: https://keepachangelog.com/en/1.0.0/ --->
 
 <!--- for documenting not yet tagged changes --->
 
+## [0.2.0] - 2026-08-17
+
 ### Fixed
 - Moved clear input to `Del` and all clear to `Shift+Del` so `C` can be used as a variable key.
 - Disallowed symbols (`~`, `@`, `#`, `$`, `&`, etc.) now show a footer warning instead of being silently inserted or causing parse errors.
@@ -22,6 +24,7 @@ Hint how to make changelogs: https://keepachangelog.com/en/1.0.0/ --->
 - Fraction insertion now consumes the full numeric token around the cursor (left and right), so inserting `a/b` inside `12345` produces `\frac{12345}{}` instead of splitting the number.
 - Vertical navigation now moves out of nested fractions correctly while preserving visual X position (e.g. from inner numerator up to outer numerator).
 ### Added
+- Desktop icon
 - Direct keypad buttons for `(`, `)`, `[`, and `]`.
 - Vim-style `h`, `j`, `k`, `l` cursor movement shortcuts.
 - Variable keys `A`–`F` always inserted as uppercase regardless of shift state.

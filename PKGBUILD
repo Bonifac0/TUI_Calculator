@@ -41,4 +41,8 @@ package() {
     # Desktop entry
     install -Dm644 "tui_calculator.desktop" \
         "$pkgdir/usr/share/applications/tui_calculator.desktop"
+
+    # Application icon
+    install -Dm644 "tui_calculator.svg" \
+        "$pkgdir/usr/share/icons/hicolor/scalable/apps/tui_calculator.svg"
 }
